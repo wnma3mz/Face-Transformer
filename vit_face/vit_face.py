@@ -472,19 +472,16 @@ class ViT_face(nn.Module):
         # 设定人脸的mask率
         self.masking_ratio = 0.75
         pixel_values_per_patch = self.patch_to_embedding.weight.shape[-1]
-        encoder_dim, decoder_dim = mlp_dim, mlp_dim
-        self.enc_to_dec = (
-            nn.Linear(encoder_dim, decoder_dim)
-            if encoder_dim != decoder_dim
-            else nn.Identity()
-        )
+        encoder_dim, decoder_dim = dim, int(dim // 2)
+        self.enc_to_dec = nn.Linear(encoder_dim, decoder_dim, bias=False)
         self.mask_token = nn.Parameter(torch.randn(decoder_dim))
         self.decoder = Transformer(
             dim=decoder_dim,
             depth=int(depth // 2),
-            heads=heads,
-            dim_head=dim_head,
+            heads=int(heads // 2),
+            dim_head=int(dim_head // 2),
             mlp_dim=mlp_dim,
+            dropout=0
         )
         self.decoder_pos_emb = nn.Embedding(num_patches, decoder_dim)
         self.to_pixels = nn.Linear(decoder_dim, pixel_values_per_patch)

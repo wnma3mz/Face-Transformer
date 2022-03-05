@@ -202,8 +202,8 @@ if __name__ == '__main__':
         BACKBONE = BACKBONE.to(DEVICE)
 
     #======= train & validation & save checkpoint =======#
-    DISP_FREQ = 10 # frequency to display training loss & acc
-    VER_FREQ = 20
+    DISP_FREQ = 200 # frequency to display training loss & acc
+    VER_FREQ = 400
 
     batch = 0  # batch index
 
@@ -226,8 +226,8 @@ if __name__ == '__main__':
 
             # outputs, emb = BACKBONE(inputs.float(), labels)
             # loss = LOSS(outputs, labels)
-            # 自监督训练，仅输出loss
-            loss = BACKBONE(inputs.float(), labels)
+            # 自监督训练，仅输出loss。多卡需要取平均
+            loss = BACKBONE(inputs.float(), labels).mean()
 
 
             #print("outputs", outputs, outputs.data)
