@@ -13,8 +13,9 @@ from util.utils import separate_irse_bn_paras, separate_resnet_bn_paras, separat
 from util.utils import get_val_data, perform_val, get_time, buffer_val, AverageMeter, train_accuracy
 
 import time
-from vit_pytorch import ViT_face
-from vit_pytorch import ViTs_face
+# from vit_pytorch import ViT_face
+# from vit_pytorch import ViTs_face
+from vit_face import ViT_face, ViTs_face
 from IPython import embed
 from timm.scheduler import create_scheduler
 from timm.optim import create_optimizer
@@ -45,7 +46,9 @@ if __name__ == '__main__':
     parser.add_argument("-d", "--data_mode", help="use which database, [casia, vgg, ms1m, retina, ms1mr]",default='ms1m', type=str)
     parser.add_argument("-n", "--net", help="which network, ['VIT','VITs']",default='VITs', type=str)
     parser.add_argument("-head", "--head", help="head type, ['Softmax', 'ArcFace', 'CosFace', 'SFaceLoss']", default='ArcFace', type=str)
-    parser.add_argument("-t", "--target", help="verification targets", default='lfw,talfw,calfw,cplfw,cfp_fp,agedb_30', type=str)
+    # 节约时间，仅测试一个
+    parser.add_argument("-t", "--target", help="verification targets", default='lfw', type=str)
+    # parser.add_argument("-t", "--target", help="verification targets", default='lfw,talfw,calfw,cplfw,cfp_fp,agedb_30', type=str)
     parser.add_argument("-r", "--resume", help="resume model", default='', type=str)
     parser.add_argument('--outdir', help="output dir", default='', type=str)
 
@@ -221,15 +224,18 @@ if __name__ == '__main__':
             inputs = inputs.to(DEVICE)
             labels = labels.to(DEVICE).long()
 
-            outputs, emb = BACKBONE(inputs.float(), labels)
-            loss = LOSS(outputs, labels)
+            # outputs, emb = BACKBONE(inputs.float(), labels)
+            # loss = LOSS(outputs, labels)
+            # 自监督训练，仅输出loss
+            loss = BACKBONE(inputs.float(), labels)
+
 
             #print("outputs", outputs, outputs.data)
             # measure accuracy and record loss
-            prec1= train_accuracy(outputs.data, labels, topk = (1,))
+            # prec1= train_accuracy(outputs.data, labels, topk = (1,))
 
             losses.update(loss.data.item(), inputs.size(0))
-            top1.update(prec1.data.item(), inputs.size(0))
+            # top1.update(prec1.data.item(), inputs.size(0))
 
 
             # compute gradient and do SGD step
