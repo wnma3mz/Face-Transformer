@@ -203,7 +203,7 @@ if __name__ == '__main__':
 
     #======= train & validation & save checkpoint =======#
     DISP_FREQ = 200 # frequency to display training loss & acc
-    VER_FREQ = 400
+    VER_FREQ = 4000
 
     batch = 0  # batch index
 
