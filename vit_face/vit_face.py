@@ -496,22 +496,24 @@ class ViT_face(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, : (n + 1)]
 
-        # 随机mask的索引
-        device = img.device
-        batch, num_patches = b, n
-        num_masked = int(self.masking_ratio * num_patches)
-        rand_indices = torch.rand(batch, num_patches, device=device).argsort(dim=-1)
-        masked_indices, unmasked_indices = (
-            rand_indices[:, :num_masked],
-            rand_indices[:, num_masked:],
-        )
+        if label is not None:
+            # 生成随机mask的索引
+            device = img.device
+            batch, num_patches = b, n
+            num_masked = int(self.masking_ratio * num_patches)
+            rand_indices = torch.rand(batch, num_patches, device=device).argsort(dim=-1)
+            masked_indices, unmasked_indices = (
+                rand_indices[:, :num_masked],
+                rand_indices[:, num_masked:],
+            )
 
-        # 未mask的patch
-        batch_range = torch.arange(batch, device=device)[:, None]
-        x = x[batch_range, unmasked_indices]
+            # 未mask的patch
+            batch_range = torch.arange(batch, device=device)[:, None]
+            # 仅输入未mask的patch
+            x = x[batch_range, unmasked_indices]
 
-        # mask的patch，需要重建
-        masked_patches = patches[batch_range, masked_indices]
+            # mask的patch，需要重建
+            masked_patches = patches[batch_range, masked_indices]
 
         x = self.dropout(x)
         x = self.transformer(x, mask)
@@ -536,12 +538,8 @@ class ViT_face(nn.Module):
             emb = self.mlp_head(x)
             return emb
 
-        # x = x.mean(dim = 1) if self.pool == 'mean' else x[:, 0]
-
-        # x = self.to_latent(x)
-        # emb = self.mlp_head(x)
-        # if label is not None:
-        #     x = self.loss(emb, label)
-        #     return x, emb
-        # else:
-        #     return emb
+            # if label is not None:
+            #     x = self.loss(emb, label)
+            #     return x, emb
+            # else:
+            #     return emb

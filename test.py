@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import sys
-from vit_pytorch import ViT_face
-from vit_pytorch import ViTs_face
+
+from vit_face import ViT_face, ViTs_face
+
 from util.utils import get_val_data, perform_val
 from IPython import embed
 import sklearn
@@ -78,9 +79,9 @@ def main(args):
 def parse_arguments(argv):
     parser = argparse.ArgumentParser()
     parser.add_argument('--model', default='', help='training set directory')
-    parser.add_argument('--network', default='VITs',
+    parser.add_argument('--network', default='VIT',
                         help='training set directory')
-    parser.add_argument('--target', default='lfw,talfw,sllfw,calfw,cplfw,cfp_fp,agedb_30',
+    parser.add_argument('--target', default='lfw',
                         help='')
     parser.add_argument('--batch_size', type=int, help='', default=20)
     return parser.parse_args(argv)
