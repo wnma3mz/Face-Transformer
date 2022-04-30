@@ -481,12 +481,12 @@ class ViT_face(nn.Module):
             heads=int(heads // 2),
             dim_head=int(dim_head // 2),
             mlp_dim=mlp_dim,
-            dropout=0
+            dropout=0,
         )
         self.decoder_pos_emb = nn.Embedding(num_patches, decoder_dim)
         self.to_pixels = nn.Linear(decoder_dim, pixel_values_per_patch)
 
-    def forward(self, img, label=None, mask=None):
+    def forward(self, img, label=None, is_finetune=False):
         p = self.patch_size
 
         patches = rearrange(img, "b c (h p1) (w p2) -> b (h w) (p1 p2 c)", p1=p, p2=p)
@@ -496,7 +496,7 @@ class ViT_face(nn.Module):
         x = torch.cat((cls_tokens, x), dim=1)
         x += self.pos_embedding[:, : (n + 1)]
 
-        if label is not None:
+        if label is not None and is_finetune == False:
             # 生成随机mask的索引
             device = img.device
             batch, num_patches = b, n
@@ -516,30 +516,37 @@ class ViT_face(nn.Module):
             masked_patches = patches[batch_range, masked_indices]
 
         x = self.dropout(x)
-        x = self.transformer(x, mask)
+        x = self.transformer(x, None)
 
-        if label is not None:
-            # 自监督, 重建
-            decoder_tokens = self.enc_to_dec(x)
-
-            mask_tokens = repeat(self.mask_token, "d -> b n d", b=batch, n=num_masked)
-            mask_tokens = mask_tokens + self.decoder_pos_emb(masked_indices)
-
-            decoder_tokens = torch.cat((decoder_tokens, mask_tokens), dim=1)
-            decoded_tokens = self.decoder(decoder_tokens)
-
-            mask_tokens = decoded_tokens[:, -num_masked:]
-            pred_pixel_values = self.to_pixels(mask_tokens)
-            recon_loss = F.mse_loss(pred_pixel_values, masked_patches)
-            return recon_loss
-        else:
+        if is_finetune:
             x = x.mean(dim=1) if self.pool == "mean" else x[:, 0]
             x = self.to_latent(x)
             emb = self.mlp_head(x)
-            return emb
 
-            # if label is not None:
-            #     x = self.loss(emb, label)
-            #     return x, emb
-            # else:
-            #     return emb
+            if label is not None:
+                x = self.loss(emb, label)
+                return x, emb
+            else:
+                return emb
+        else:
+            if label is not None:
+                # 自监督, 重建
+                decoder_tokens = self.enc_to_dec(x)
+
+                mask_tokens = repeat(
+                    self.mask_token, "d -> b n d", b=batch, n=num_masked
+                )
+                mask_tokens = mask_tokens + self.decoder_pos_emb(masked_indices)
+
+                decoder_tokens = torch.cat((decoder_tokens, mask_tokens), dim=1)
+                decoded_tokens = self.decoder(decoder_tokens)
+
+                mask_tokens = decoded_tokens[:, -num_masked:]
+                pred_pixel_values = self.to_pixels(mask_tokens)
+                recon_loss = F.mse_loss(pred_pixel_values, masked_patches)
+                return recon_loss
+            else:
+                x = x.mean(dim=1) if self.pool == "mean" else x[:, 0]
+                x = self.to_latent(x)
+                emb = self.mlp_head(x)
+                return emb
